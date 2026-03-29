@@ -1,0 +1,83 @@
+name: Deploy AutoOps
+
+on:
+  # Run this workflow every time code is pushed to the main branch.
+  push:
+    branches:
+      - main
+
+# Minimal permissions for this workflow.
+permissions:
+  contents: read
+
+env:
+  # Tell Terraform it is running in automation.
+  TF_IN_AUTOMATION: true
+
+  # Keep the Terraform folder path in one place so commands stay consistent.
+  TF_WORKING_DIR: terraform
+
+jobs:
+  deploy:
+    name: Terraform Deploy
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1) Download the repository code onto the GitHub runner.
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      # 2) Install Terraform CLI so the runner can use terraform commands.
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v4
+        with:
+          terraform_wrapper: false
+
+      # 3) Configure AWS credentials from GitHub Actions secrets.
+      # These credentials are used by Terraform and AWS CLI calls in later steps.
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      # 4) Build the Lambda zip file exactly where Terraform expects it:
+      # autoops/lambda/autoops_lambda.zip
+      - name: Zip Lambda code
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          rm -f lambda/autoops_lambda.zip
+
+          cd lambda
+
+          # Zip the Lambda handler file.
+          # requirements.txt is included too so the artifact stays predictable.
+          zip -j autoops_lambda.zip lambda_function.py requirements.txt
+
+          echo "Created lambda/autoops_lambda.zip successfully"
+          ls -lah autoops_lambda.zip
+
+      # 5) Initialize Terraform so providers and modules are ready.
+      - name: Terraform init
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        run: terraform init -input=false
+
+      # 6) Validate Terraform syntax and internal references.
+      - name: Terraform validate
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        run: terraform validate
+
+      # 7) Create an execution plan first.
+      # Saving the plan makes apply more controlled and reproducible.
+      - name: Terraform plan
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        run: terraform plan -input=false -out=tfplan
+
+      # 8) Apply the exact saved plan automatically on main.
+      - name: Terraform apply
+        if: github.ref == 'refs/heads/main'
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        run: terraform apply -input=false -auto-approve tfplan

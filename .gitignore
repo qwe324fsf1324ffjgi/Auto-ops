@@ -1,0 +1,64 @@
+# =========================
+# GENERAL
+# =========================
+node_modules/
+*.log
+.env
+.env.*
+.DS_Store
+
+# =========================
+# PYTHON (Lambda)
+# =========================
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.zip
+venv/
+.env/
+
+# =========================
+# TERRAFORM (VERY IMPORTANT)
+# =========================
+.terraform/
+*.tfstate
+*.tfstate.*
+crash.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# Terraform lock info (optional keep if team project)
+.terraform.lock.hcl
+
+# =========================
+# AWS / CREDENTIALS
+# =========================
+*.pem
+*.key
+*.crt
+.aws/
+credentials
+config
+
+# =========================
+# OS / EDITOR
+# =========================
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# =========================
+# BUILD ARTIFACTS
+# =========================
+dist/
+build/
+
+# =========================
+# LAMBDA PACKAGE (VERY IMPORTANT)
+# =========================
+lambda/*.zip
+autoops_lambda.zip
