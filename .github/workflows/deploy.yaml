@@ -1,6 +1,6 @@
-name: Deploy AutoOps
+##name: Deploy AutoOps
 
-on:
+##on:
   push:
     branches:
       - main
